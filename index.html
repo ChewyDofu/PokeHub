@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokeHub | Fluid Apex Terminal</title>
+    <title>PokeHub | Apex Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -22,11 +22,9 @@
         .stat-fill { height: 100%; border-radius: 99px; transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
         
         .badge { padding: 4px 10px; border-radius: 99px; font-size: 9px; font-weight: 900; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.1); }
-        
-        /* Sticky Sidebar logic */
-        @media (min-width: 1280px) {
-            .sticky-sidebar { position: sticky; top: 100px; }
-        }
+        .evo-badge { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 2px 8px; border-radius: 6px; font-size: 8px; font-weight: 900; color: #fbbf24; text-transform: uppercase; }
+
+        @media (min-width: 1280px) { .sticky-sidebar { position: sticky; top: 100px; } }
     </style>
 </head>
 <body class="min-h-screen pb-10">
@@ -86,13 +84,12 @@
         </section>
 
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-            
             <div class="xl:col-span-8 space-y-6">
                 <div class="glass-inset border-l-4 border-l-red-500">
                     <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-red-400"><i data-lucide="shield-check" class="w-5 h-5"></i> Defensive Matrix</h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
-                            <p class="text-[9px] font-black uppercase text-white/20 tracking-widest mb-3 italic">Vulnerabilities</p>
+                            <p class="text-[9px] font-black uppercase text-white/20 tracking-widest mb-3 italic">Weaknesses</p>
                             <div id="weaknesses" class="flex flex-wrap gap-1.5"></div>
                         </div>
                         <div>
@@ -140,7 +137,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </main>
 
@@ -217,8 +213,10 @@
         }
 
         async function renderEvo(chain) {
-            const container = document.getElementById('evoChain'); container.innerHTML = '';
+            const container = document.getElementById('evoChain'); 
+            container.innerHTML = '';
             let current = chain;
+
             while(current) {
                 const p = await fetch(`https://pokeapi.co/api/v2/pokemon/${current.species.name}`).then(r => r.json());
                 container.innerHTML += `
@@ -226,8 +224,23 @@
                         <img src="${p.sprites.front_default}" class="w-16 h-16 bg-white/5 rounded-full border border-white/5 shadow-lg">
                         <p class="text-[9px] font-black uppercase mt-2 text-white/40 tracking-tighter">${p.name}</p>
                     </div>`;
-                if(current.evolves_to.length > 0) { container.innerHTML += `<i data-lucide="chevron-right" class="text-white/10 w-4 h-4"></i>`; current = current.evolves_to[0]; }
-                else { current = null; }
+                
+                if(current.evolves_to.length > 0) {
+                    const details = current.evolves_to[0].evolution_details[0];
+                    let trigger = "???";
+                    if(details) {
+                        if(details.min_level) trigger = `LV ${details.min_level}`;
+                        else if(details.item) trigger = details.item.name.replace('-', ' ');
+                        else if(details.trigger.name === 'trade') trigger = "Trade";
+                        else if(details.min_happiness) trigger = "Happiness";
+                    }
+                    container.innerHTML += `
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="evo-badge font-mono">${trigger}</span>
+                            <i data-lucide="chevron-right" class="text-white/10 w-4 h-4"></i>
+                        </div>`;
+                    current = current.evolves_to[0];
+                } else { current = null; }
             }
             lucide.createIcons();
         }
@@ -236,7 +249,7 @@
             const stats = data.stats.reduce((acc, s) => ({ ...acc, [s.stat.name]: s.base_stat }), {});
             let role = "Tactical", nature = "Jolly", moves = ["STAB 1", "STAB 2", "Coverage", "Utility"];
             if (stats.attack > stats['special-attack']) { role = "Wallbreaker"; nature = "Adamant"; }
-            else { role = "Special Sweeper"; nature = "Timid"; moves = ["Thunderbolt", "Ice Beam", "Psychic", "Giga Drain"]; }
+            else { role = "Special Sweeper"; nature = "Modest"; moves = ["Thunderbolt", "Ice Beam", "Flamethrower", "Psychic"]; }
             
             document.getElementById('strategyContent').innerHTML = `
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-black/20 p-5 rounded-xl border border-white/5">
@@ -264,7 +277,7 @@
             container.innerHTML = groupData.map(d => `
                 <div onclick="updateView('${d.name}')" class="flex items-center justify-between p-3 bg-black/40 rounded-xl border border-white/5 cursor-pointer hover:bg-white/5 transition">
                     <div><p class="text-[8px] font-black uppercase text-purple-400 mb-1">${d.group}</p><p class="text-sm font-bold capitalize">${d.name}</p></div>
-                    <img src="${d.sprite}" class="w-14 h-14 object-contain">
+                    <img src="${d.sprite}" class="w-16 h-16 object-contain">
                 </div>`).join('');
         }
 
